@@ -1,0 +1,16 @@
+name: Disposable Windows SSH
+on: workflow_dispatch
+
+jobs:
+  ephemeral-windows:
+    runs-on: windows-latest
+    steps:
+      # Checks out your repo so bender.exe is already on disk
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Start SSH Session
+        uses: mxschmitt/action-tmate@v3
+        with:
+          limit-access-to-actor: true
+
