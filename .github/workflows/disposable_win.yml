@@ -1,16 +1,19 @@
 name: Disposable Windows SSH
-on: workflow_dispatch
+name: Disposable Windows SSH
+on:
+  workflow_dispatch:
 
 jobs:
-  ephemeral-windows:
+  windows-runner:
     runs-on: windows-latest
     steps:
-      # Checks out your repo so bender.exe is already on disk
-      - name: Checkout repo
+      - name: Checkout repository code
         uses: actions/checkout@v4
 
-      - name: Start SSH Session
-        uses: mxschmitt/action-tmate@v3
+      - name: Launch SSH Session (Upterm)
+        uses: lhotari/action-upterm@v1
         with:
+          # Automatically pulls your registered SSH keys from github.com/dkappe.keys
+          # and denies access to anyone else
           limit-access-to-actor: true
-
+          wait-timeout-minutes: 360 # Keeps runner alive up to 6 hours
