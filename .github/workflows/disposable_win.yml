@@ -6,16 +6,25 @@ on:
 jobs:
   windows-runner:
     runs-on: windows-latest
-    timeout-minutes: 60          # don't burn 6 hours if you forget it
+    timeout-minutes: 60
     steps:
       - name: Checkout repository code
         uses: actions/checkout@v4
+
+      - name: Install tmate via MSYS2
+        shell: pwsh
+        timeout-minutes: 5
+        run: |
+          C:\msys64\usr\bin\bash.exe -lc "pacman -S --noconfirm --needed --noprogressbar tmate"
+          # kill stray agents that can keep pacman/the step from returning
+          Get-Process gpg-agent, dirmngr -ErrorAction SilentlyContinue | Stop-Process -Force
+          C:\msys64\usr\bin\bash.exe -lc "tmate -V"
 
       - name: Launch SSH Session (tmate)
         uses: mxschmitt/action-tmate@v3
         timeout-minutes: 55
         with:
-          limit-access-to-actor: true      # only your GitHub SSH keys; also disables web shell
-          connect-timeout-seconds: 600     # 10 min to connect before it gives up
-          detached: false
+          install-dependencies: false
+          limit-access-to-actor: true
+          connect-timeout-seconds: 600
           
