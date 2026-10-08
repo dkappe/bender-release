@@ -10,15 +10,8 @@ jobs:
       - name: Checkout repository code
         uses: actions/checkout@v4
 
-      - name: Launch SSH Session
-        uses: lhotari/action-upterm@v1
+      - name: Launch SSH Session (tmate)
+        uses: mxschmitt/action-tmate@v3
         with:
           limit-access-to-actor: true
-
-      - name: Keep Runner Alive
-        shell: powershell
-        run: |
-          Write-Host "SSH session is active. Waiting for manual disconnect or timeout..."
-          # Keeps the runner alive for up to 5 hours (18,000 seconds)
-          Start-Sleep -Seconds 18000
           
