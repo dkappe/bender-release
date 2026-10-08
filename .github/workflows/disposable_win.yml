@@ -1,4 +1,5 @@
 name: Disposable Windows SSH
+
 on:
   workflow_dispatch:
 
@@ -9,10 +10,15 @@ jobs:
       - name: Checkout repository code
         uses: actions/checkout@v4
 
-      - name: Launch SSH Session (Upterm)
+      - name: Launch SSH Session
         uses: lhotari/action-upterm@v1
         with:
-          # Automatically pulls your registered SSH keys from github.com/dkappe.keys
-          # and denies access to anyone else
           limit-access-to-actor: true
-          wait-timeout-minutes: 360 # Keeps runner alive up to 6 hours
+
+      - name: Keep Runner Alive
+        shell: powershell
+        run: |
+          Write-Host "SSH session is active. Waiting for manual disconnect or timeout..."
+          # Keeps the runner alive for up to 5 hours (18,000 seconds)
+          Start-Sleep -Seconds 18000
+          
