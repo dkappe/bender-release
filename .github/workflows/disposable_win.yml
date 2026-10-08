@@ -1,16 +1,30 @@
 name: Disposable Windows SSH
-on: workflow_dispatch
+
+on:
+  workflow_dispatch:
 
 jobs:
-  ephemeral-windows:
+  windows-runner:
     runs-on: windows-latest
+    timeout-minutes: 60
     steps:
-      # Checks out your repo so bender.exe is already on disk
-      - name: Checkout repo
+      - name: Checkout repository code
         uses: actions/checkout@v4
 
-      - name: Start SSH Session
-        uses: mxschmitt/action-tmate@v3
-        with:
-          limit-access-to-actor: true
+      - name: Install tmate via MSYS2
+        shell: pwsh
+        timeout-minutes: 5
+        run: |
+          C:\msys64\usr\bin\bash.exe -lc "pacman -S --noconfirm --needed --noprogressbar tmate"
+          # kill stray agents that can keep pacman/the step from returning
+          Get-Process gpg-agent, dirmngr -ErrorAction SilentlyContinue | Stop-Process -Force
+          C:\msys64\usr\bin\bash.exe -lc "tmate -V"
 
+      - name: Launch SSH Session (tmate)
+        uses: mxschmitt/action-tmate@v3
+        timeout-minutes: 55
+        with:
+          install-dependencies: false
+          limit-access-to-actor: true
+          connect-timeout-seconds: 600
+          
