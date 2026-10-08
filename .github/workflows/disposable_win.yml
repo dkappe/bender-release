@@ -10,10 +10,31 @@ jobs:
       - name: Checkout repository code
         uses: actions/checkout@v4
 
-      - name: Launch SSH Session (tmate)
-        uses: mxschmitt/action-tmate@v3
-        with:
-          limit-access-to-actor: true
-          # Disables the web shell and forces standard terminal attachment
-          connect-timeout-seconds: 60
-          
+      - name: Enable Windows OpenSSH
+        shell: powershell
+        run: |
+          Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
+          Start-Service sshd
+          Set-Service -Name sshd -StartupType 'Automatic'
+          # Authorize your GitHub SSH key
+          $keys = (Invoke-RestMethod -Uri "https://github.com/dkappe.keys")
+          $authFile = "C:\ProgramData\ssh\administrators_authorized_keys"
+          Set-Content -Path $authFile -Value $keys -Force
+          icacls.exe $authFile /inheritance:r /grant "Administrators:F" /grant "SYSTEM:F"
+
+      - name: Start ngrok tunnel
+        shell: powershell
+        env:
+          NGROK_AUTHTOKEN: ${{ secrets.NGROK_AUTHTOKEN }}
+        run: |
+          choco install ngrok -y
+          ngrok config add-authtoken $env:NGROK_AUTHTOKEN
+          Start-Process ngrok -ArgumentList "tcp 22 --log=stdout"
+          Start-Sleep -Seconds 5
+          $tunnels = (Invoke-RestMethod -Uri "http://127.0.0.1:4040/api/tunnels").tunnels
+          $endpoint = $tunnels[0].public_url -replace "tcp://", ""
+          Write-Host "=========================================="
+          Write-Host "CONNECT WITH:"
+          Write-Host "ssh runneradmin@$($endpoint.Split(':')[0]) -p $($endpoint.Split(':')[1])"
+          Write-Host "=========================================="
+          Start-Sleep -Seconds 18000
