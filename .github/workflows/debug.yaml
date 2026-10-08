@@ -1,0 +1,59 @@
+name: Debug tmate on Windows
+
+on:
+  workflow_dispatch:
+
+jobs:
+  debug:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository code
+        uses: actions/checkout@v4
+
+      - name: Check network access to tmate servers
+        shell: pwsh
+        run: |
+          Resolve-DnsName ssh.tmate.io
+          Test-NetConnection ssh.tmate.io -Port 22 | Format-List ComputerName,RemoteAddress,TcpTestSucceeded
+
+      - name: Install tmate via MSYS2
+        shell: pwsh
+        timeout-minutes: 5
+        run: |
+          C:\msys64\usr\bin\bash.exe -lc "pacman -S --noconfirm --needed --noprogressbar tmate"
+          Get-Process gpg-agent, dirmngr -ErrorAction SilentlyContinue | Stop-Process -Force
+          C:\msys64\usr\bin\bash.exe -lc "which tmate; tmate -V"
+
+      - name: Start tmate (verbose)
+        id: tmate
+        shell: pwsh
+        timeout-minutes: 3
+        continue-on-error: true
+        run: |
+          C:\msys64\usr\bin\bash.exe -lc @'
+          set -x
+          mkdir -p /tmp/tmatelogs && cd /tmp/tmatelogs
+          tmate -vv -S /tmp/t.sock new-session -d
+          timeout 90 tmate -S /tmp/t.sock wait tmate-ready
+          echo "wait exit code: $?"
+          tmate -S /tmp/t.sock display -p 'SSH: #{tmate_ssh}'
+          tmate -S /tmp/t.sock display -p 'Web: #{tmate_web}'
+          '@
+
+      - name: Show tmate logs
+        if: always()
+        shell: pwsh
+        run: |
+          C:\msys64\usr\bin\bash.exe -lc "ls -la /tmp/tmatelogs; for f in /tmp/tmatelogs/*.log; do echo \"===== \$f\"; tail -n 100 \"\$f\"; done"
+
+      - name: Keep session open if it worked (create /tmp/continue to finish)
+        if: steps.tmate.outcome == 'success'
+        shell: pwsh
+        timeout-minutes: 20
+        run: |
+          C:\msys64\usr\bin\bash.exe -lc @'
+          tmate -S /tmp/t.sock display -p 'Connect with: #{tmate_ssh}'
+          while [ ! -f /tmp/continue ] && tmate -S /tmp/t.sock has-session 2>/dev/null; do sleep 10; done
+          '@
+          
