@@ -1,5 +1,4 @@
 name: Disposable Windows SSH
-name: Disposable Windows SSH
 on:
   workflow_dispatch:
 
